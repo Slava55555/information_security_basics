@@ -1,13 +1,9 @@
+import scala.io.StdIn
+
 object AccessControlService {
-  // Проверка доступа к файлу
   def checkAccess(user: User, file: FileRecord, action: String): Boolean = {
-    // Администратор имеет полный доступ ко всем файлам
-    if (user.isAdmin) return true
+    if (user.isAdmin || user.username == file.owner) return true
 
-    // Владелец имеет полный доступ к своему файлу
-    if (user.username == file.owner) return true
-
-    // Проверяем права доступа для других пользователей
     val rights = file.getAccessRights(user.username)
 
     val hasAccess = action match {
@@ -26,17 +22,14 @@ object AccessControlService {
     hasAccess
   }
 
-  // Проверка прав на удаление файла
   def canDeleteFile(user: User, file: FileRecord): Boolean = {
     user.isAdmin || user.username == file.owner
   }
 
-  // Проверка прав на управление доступом
   def canManageAccess(user: User, file: FileRecord): Boolean = {
     user.isAdmin || user.username == file.owner
   }
 
-  // Проверка существования целевого пользователя для предоставления доступа
   def validateTargetUser(owner: User, targetUsername: String, authService: AuthService): Boolean = {
     if (targetUsername == owner.username) {
       println("✗ Нельзя предоставить доступ самому себе!")
@@ -51,7 +44,6 @@ object AccessControlService {
     }
   }
 
-  // Создание объекта прав доступа из пользовательского ввода
   def createAccessRightsFromInput(): AccessRights = {
     println("\nУстановите права доступа:")
     print("Разрешить чтение (R)? [y/n]: ")
@@ -66,7 +58,6 @@ object AccessControlService {
     AccessRights(read, write, append, delete)
   }
 
-  // Форматированное отображение прав доступа
   def formatAccessRights(rights: AccessRights): String = {
     val permissions = List(
       if (rights.read) "Чтение" else "",

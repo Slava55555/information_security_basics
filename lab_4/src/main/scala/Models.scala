@@ -1,4 +1,4 @@
-
+import scala.collection.mutable
 
 case class User(
                  username: String,

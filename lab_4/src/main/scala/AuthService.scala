@@ -3,15 +3,12 @@ import scala.collection.mutable
 import scala.io.{Source, StdIn}
 
 class AuthService {
-  // Хранилище пользователей
   private val users: mutable.Map[String, User] = mutable.Map.empty
   private val BASE_DIR = "lab_4/src/main/resources/files/"
   private val USERS_FILE = BASE_DIR + "users.csv"
 
-  // Инициализация
   init()
 
-  // Регистрация пользователя
   def register(): Option[User] = {
     println("\n=== РЕГИСТРАЦИЯ ===")
     print("Введите имя пользователя (3-20 символов, только буквы, цифры и _): ")
@@ -40,14 +37,12 @@ class AuthService {
     val user = User(username, passwordHash)
     users(username) = user
 
-    // Сохраняем в файл
     saveUsersToFile()
 
     println(s"✓ Пользователь '$username' успешно зарегистрирован!")
     Some(user)
   }
 
-  // Аутентификация пользователя
   def login(): Option[User] = {
     println("\n=== ВХОД В СИСТЕМУ ===")
     print("Введите имя пользователя: ")
@@ -72,7 +67,6 @@ class AuthService {
     }
   }
 
-  // Быстрый вход администратора
   def adminLogin(): Option[User] = {
     println("\n=== ВХОД АДМИНИСТРАТОРА ===")
     print("Введите пароль администратора: ")
@@ -95,19 +89,14 @@ class AuthService {
     }
   }
 
-  // Получить пользователя по имени
   def getUser(username: String): Option[User] = users.get(username)
 
-  // Получить всех пользователей
   def getAllUsers: Iterable[User] = users.values
 
-  // Проверить существование пользователя
   def userExists(username: String): Boolean = users.contains(username)
 
-  // Получить количество пользователей
   def getUserCount: Int = users.size
 
-  // Сохранить изменения
   def save(): Unit = saveUsersToFile()
 
   private def saveUsersToFile(): Unit = {
@@ -125,13 +114,10 @@ class AuthService {
   }
 
   private def init(): Unit = {
-    // Создаем директорию для данных
     new File(BASE_DIR).mkdirs()
 
-    // Загружаем пользователей из файла
     loadUsersFromFile()
-
-    // Если файл пустой или не существует, создаем администратора
+    
     if (users.isEmpty) {
       createDefaultAdmin()
     }

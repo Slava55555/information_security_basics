@@ -1,25 +1,22 @@
 import java.io.{File, FileWriter, PrintWriter}
 import java.nio.file.{Files, Paths, StandardOpenOption}
+import scala.collection.mutable
+import scala.io.{Source, StdIn}
 
 class FileService(authService: AuthService) {
-  // Получаем абсолютный путь к корню проекта
   private val BASE_DIR = s"lab_4/src/main/resources/files/"
   private val FILES_FILE = BASE_DIR + "files.csv"
   private val ACCESS_RIGHTS_FILE = BASE_DIR + "access_rights.csv"
-
-  // Хранилище метаданных файлов
+  
   private val files: mutable.Map[String, FileRecord] = mutable.Map.empty
-
-  // Инициализация
+  
   init()
 
   private def init(): Unit = {
-    // Создаем директории
     ensureDirectories()
 
     println(s"✓ Директория для файлов: $BASE_DIR")
 
-    // Загружаем данные из файлов
     loadAllData()
 
     println(s"Загружено ${files.size} файлов с метаданными")
@@ -122,7 +119,6 @@ class FileService(authService: AuthService) {
     try {
       val writer = new PrintWriter(new FileWriter(FILES_FILE, false))
       files.values.foreach { file =>
-        // ТОЛЬКО метаданные: имя файла и владелец
         writer.println(s"${file.filename},${file.owner}")
       }
       writer.close()
@@ -154,8 +150,7 @@ class FileService(authService: AuthService) {
         e.printStackTrace()
     }
   }
-
-  // Автосохранение после изменений
+  
   private def autoSave(): Unit = {
     try {
       saveAllData()
@@ -164,13 +159,11 @@ class FileService(authService: AuthService) {
         println(s"⚠ Предупреждение: не удалось автосохранение: ${e.getMessage}")
     }
   }
-
-  // Вспомогательный метод для получения полного пути
+  
   private def getFullPath(filename: String): String = {
     BASE_DIR + filename
   }
-
-  // Проверка существования файла
+  
   private def fileExists(filename: String): Boolean = {
     val existsInMemory = files.contains(filename)
     val existsOnDisk = new File(getFullPath(filename)).exists()
@@ -182,8 +175,7 @@ class FileService(authService: AuthService) {
 
     exists
   }
-
-  // Получение содержимого файла с диска
+  
   private def getFileContent(filename: String): String = {
     try {
       val path = Paths.get(getFullPath(filename))
@@ -200,8 +192,7 @@ class FileService(authService: AuthService) {
         ""
     }
   }
-
-  // Создание файла
+  
   def createFile(user: User): Unit = {
     println("\n=== СОЗДАНИЕ ФАЙЛА ===")
     print("Введите имя файла: ")
@@ -225,30 +216,25 @@ class FileService(authService: AuthService) {
 
     print("Введите начальное содержимое файла (можно оставить пустым): ")
     val initialContent = StdIn.readLine()
-
-    // Создаем реальный файл на диске
+    
     val fullPath = getFullPath(filename)
     val fileObj = new File(fullPath)
 
     try {
-      // Создаем физический файл
       val writer = new PrintWriter(fileObj, "UTF-8")
       writer.write(initialContent)
       writer.close()
-
-      // Создаем запись о файле (ТОЛЬКО метаданные)
+      
       val fileRecord = new FileRecord(filename, user.username)
       files(filename) = fileRecord
-
-      // Автосохранение метаданных
+      
       autoSave()
 
       println(s"✓ Файл '$filename' успешно создан!")
       println(s"   Путь: ${fileObj.getAbsolutePath}")
       println(s"   Размер: ${initialContent.length} символов")
       println(s"   Владелец: ${user.username}")
-
-      // Проверяем, что файл действительно создался
+      
       if (fileObj.exists()) {
         println(s"   Проверка: файл существует на диске, размер: ${fileObj.length()} байт")
       } else {
@@ -261,8 +247,7 @@ class FileService(authService: AuthService) {
         e.printStackTrace()
     }
   }
-
-  // Чтение файла
+  
   def readFile(user: User): Unit = {
     println("\n=== ЧТЕНИЕ ФАЙЛА ===")
     print("Введите имя файла: ")
@@ -276,8 +261,7 @@ class FileService(authService: AuthService) {
     files.get(filename) match {
       case Some(file) =>
         if (!AccessControlService.checkAccess(user, file, "read")) return
-
-        // Читаем из реального файла на диске
+        
         val content = getFileContent(filename)
 
         println(s"\n" + "=" * 60)
@@ -295,16 +279,14 @@ class FileService(authService: AuthService) {
 
       case None =>
         println("✗ Файл не найден в системе!")
-        // Проверяем, может файл есть на диске, но нет в метаданных
         val diskFile = new File(getFullPath(filename))
         if (diskFile.exists()) {
           println(s"   ⚠ Файл существует на диске, но нет в метаданных системы")
-          println(s"   Путь: ${diskFile.getAbsolutePath()}")
+          println(s"   Путь: ${diskFile.getAbsolutePath}")
         }
     }
   }
-
-  // Запись в файл (перезапись)
+  
   def writeFile(user: User): Unit = {
     println("\n=== ПЕРЕЗАПИСЬ ФАЙЛА ===")
     print("Введите имя файла: ")
@@ -321,23 +303,16 @@ class FileService(authService: AuthService) {
 
         print("Введите новое содержимое файла: ")
         val newContent = StdIn.readLine()
-
-        // Записываем в реальный файл на диске
+        
         try {
           val writer = new PrintWriter(getFullPath(filename), "UTF-8")
           writer.write(newContent)
           writer.close()
-
-          // НЕ обновляем метаданные (они не изменились)
-          // Только владелец и имя файла остаются теми же
-
-          // Автосохранение
           autoSave()
 
           println(s"✓ Файл '$filename' успешно перезаписан!")
           println(s"   Новый размер: ${newContent.length} символов")
-
-          // Проверяем запись
+          
           val fileObj = new File(getFullPath(filename))
           if (fileObj.exists()) {
             println(s"   Проверка: файл обновлен на диске, размер: ${fileObj.length()} байт")
@@ -352,8 +327,7 @@ class FileService(authService: AuthService) {
         println("✗ Файл не найден!")
     }
   }
-
-  // Дописывание в файл
+  
   def appendToFile(user: User): Unit = {
     println("\n=== ДОПИСЫВАНИЕ В ФАЙЛ ===")
     print("Введите имя файла: ")
@@ -375,21 +349,16 @@ class FileService(authService: AuthService) {
           println("✗ Не указан текст для добавления!")
           return
         }
-
-        // Дописываем в реальный файл на диске
+        
         try {
           val path = Paths.get(getFullPath(filename))
           Files.write(path, textToAppend.getBytes("UTF-8"), StandardOpenOption.APPEND)
 
-          // НЕ обновляем метаданные
-
-          // Автосохранение
           autoSave()
 
           println(s"✓ Текст успешно добавлен в файл '$filename'!")
           println(s"   Добавлено: ${textToAppend.length} символов")
 
-          // Показываем новый размер
           val newContent = getFileContent(filename)
           println(s"   Общий размер: ${newContent.length} символов")
         } catch {
@@ -402,8 +371,7 @@ class FileService(authService: AuthService) {
         println("✗ Файл не найден!")
     }
   }
-
-  // Удаление содержимого файла
+  
   def deleteFileContent(user: User): Unit = {
     println("\n=== ОЧИСТКА ФАЙЛА ===")
     print("Введите имя файла: ")
@@ -426,13 +394,11 @@ class FileService(authService: AuthService) {
           return
         }
 
-        // "Удаляем" содержимое (записываем пустую строку)
         try {
           val writer = new PrintWriter(getFullPath(filename), "UTF-8")
           writer.write("")
           writer.close()
-
-          // Автосохранение
+          
           autoSave()
 
           println(s"✓ Содержимое файла '$filename' очищено!")
@@ -447,7 +413,6 @@ class FileService(authService: AuthService) {
     }
   }
 
-  // Управление доступом к файлу
   def manageFileAccess(user: User): Unit = {
     println("\n=== УПРАВЛЕНИЕ ДОСТУПОМ К ФАЙЛУ ===")
     print("Введите имя файла: ")
@@ -466,8 +431,7 @@ class FileService(authService: AuthService) {
         }
 
         println(s"\nФайл: '$filename' (владелец: ${file.owner})")
-
-        // Показать текущие права доступа
+        
         val currentRights = file.getAllAccessRights
         if (currentRights.nonEmpty) {
           println("\nТекущие права доступа:")
@@ -477,8 +441,7 @@ class FileService(authService: AuthService) {
         } else {
           println("\nДоступ предоставлен только владельцу")
         }
-
-        // Меню управления доступом
+        
         var managing = true
         while (managing) {
           println("\nДействия:")
@@ -588,8 +551,7 @@ class FileService(authService: AuthService) {
       println("Отмена отзыва доступа")
     }
   }
-
-  // Просмотр списка доступных файлов
+  
   def listFiles(user: User): Unit = {
     println("\n=== ВАШИ ФАЙЛЫ ===")
 
@@ -657,14 +619,13 @@ class FileService(authService: AuthService) {
           val fileObj = new File(getFullPath(filename))
           if (fileObj.delete()) {
             files.remove(filename)
-
-            // Автосохранение
+            
             autoSave()
 
             println(s"✓ Файл '$filename' удален!")
           } else {
             println(s"✗ Ошибка при удалении файла!")
-            println(s"   Путь: ${fileObj.getAbsolutePath()}")
+            println(s"   Путь: ${fileObj.getAbsolutePath}")
             println(s"   Существует: ${fileObj.exists()}")
           }
         } catch {
@@ -677,8 +638,7 @@ class FileService(authService: AuthService) {
         println("✗ Файл не найден!")
     }
   }
-
-  // Просмотр информации о файле
+  
   def fileInfo(user: User): Unit = {
     println("\n=== ИНФОРМАЦИЯ О ФАЙЛЕ ===")
     print("Введите имя файла: ")
@@ -699,7 +659,7 @@ class FileService(authService: AuthService) {
         println(s"ИНФОРМАЦИЯ О ФАЙЛЕ: '$filename'")
         println("=" * 60)
         println(s"Владелец: ${file.owner}")
-        println(s"Путь на диске: ${fileObj.getAbsolutePath()}")
+        println(s"Путь на диске: ${fileObj.getAbsolutePath}")
 
         if (fileObj.exists()) {
           val content = getFileContent(filename)
@@ -709,8 +669,7 @@ class FileService(authService: AuthService) {
         } else {
           println("✗ Физический файл не найден на диске!")
         }
-
-        // Показываем, кому предоставлен доступ
+        
         val accessRights = file.getAllAccessRights
         if (accessRights.nonEmpty) {
           println("\nДоступ предоставлен:")
@@ -725,62 +684,23 @@ class FileService(authService: AuthService) {
 
       case None =>
         println("✗ Файл не найден в метаданных!")
-        // Проверяем на диске
         val diskFile = new File(getFullPath(filename))
         if (diskFile.exists()) {
           println("   ⚠ Файл существует на диске, но отсутствует в метаданных системы")
-          println(s"   Путь: ${diskFile.getAbsolutePath()}")
+          println(s"   Путь: ${diskFile.getAbsolutePath}")
           println(s"   Размер: ${diskFile.length()} байт")
         }
     }
   }
-
-  // Отладочная информация
-  def debugInfo(): Unit = {
-    println(s"\n=== ОТЛАДОЧНАЯ ИНФОРМАЦИЯ FILE SERVICE ===")
-    println(s"Директория файлов: $BASE_DIR")
-    println(s"Файл метаданных: $FILES_FILE")
-    println(s"Файл прав доступа: $ACCESS_RIGHTS_FILE")
-    println(s"Файлов в памяти: ${files.size}")
-
-    // Проверяем существование директорий
-    val baseDirExists = new File(BASE_DIR).exists()
-    val filesFileExists = new File(FILES_FILE).exists()
-    val rightsFileExists = new File(ACCESS_RIGHTS_FILE).exists()
-
-    println(s"Директория файлов существует: $baseDirExists")
-    println(s"Файл метаданных существует: $filesFileExists")
-    println(s"Файл прав доступа существует: $rightsFileExists")
-
-    // Список файлов
-    if (files.nonEmpty) {
-      println("\nСписок файлов в системе:")
-      files.values.foreach { file =>
-        val diskFile = new File(getFullPath(file.filename))
-        val existsOnDisk = diskFile.exists()
-        val sizeOnDisk = if (existsOnDisk) diskFile.length() else 0
-        println(s"  - ${file.filename}: владелец=${file.owner}, на диске=$existsOnDisk, размер=$sizeOnDisk байт")
-      }
-    }
-  }
-
-  // Принудительное сохранение всех данных
+  
   def saveAll(): Unit = {
     println("Сохранение данных файловой системы...")
     saveAllData()
   }
-
-  // Получить файл по имени
-  def getFile(filename: String): Option[FileRecord] = files.get(filename)
-
-  // Получить все файлы пользователя
+  
   def getUserFiles(username: String): Iterable[FileRecord] = {
     files.values.filter(_.owner == username)
   }
-
-  // Получить все файлы
-  def getAllFiles: Iterable[FileRecord] = files.values
-
-  // Получить количество файлов
+  
   def getFileCount: Int = files.size
 }

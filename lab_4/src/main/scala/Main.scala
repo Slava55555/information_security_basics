@@ -1,4 +1,4 @@
-
+import scala.io.StdIn
 
 object Main {
   def main(args: Array[String]): Unit = {
@@ -13,13 +13,11 @@ object Main {
     println("=" * 60)
 
     try {
-      // Инициализация сервисов
       val authService = new AuthService()
       val fileService = new FileService(authService)
 
       var currentUser: Option[User] = None
 
-      // Цикл входа/регистрации
       while (currentUser.isEmpty) {
         showLoginMenu()
 
@@ -46,7 +44,6 @@ object Main {
         }
       }
 
-      // Запуск главного меню для авторизованного пользователя
       runMainMenu(currentUser.get, authService, fileService)
 
     } catch {
@@ -62,7 +59,6 @@ object Main {
     println("СОХРАНЕНИЕ ДАННЫХ И ВЫХОД")
     println("=" * 60)
 
-    // Сохраняем данные пользователей
     try {
       authService.save()
     } catch {
@@ -70,7 +66,6 @@ object Main {
         println(s"⚠ Не удалось сохранить данные пользователей: ${e.getMessage}")
     }
 
-    // Сохраняем данные файлов
     try {
       fileService.saveAll()
     } catch {
@@ -167,8 +162,7 @@ object Main {
     println("=" * 60)
     println(s"Зарегистрировано пользователей: ${authService.getUserCount}")
     println(s"Создано файлов: ${fileService.getFileCount}")
-
-    // Показываем топ-5 пользователей по количеству файлов
+    
     val users = authService.getAllUsers
     val userFilesCount = users.map { user =>
       (user.username, fileService.getUserFiles(user.username).size)
